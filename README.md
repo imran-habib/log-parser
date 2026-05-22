@@ -4,6 +4,7 @@ A fast, concurrent log file parser built in Python. Processes 500k+ lines at **~
 
 ## Features
 
+- **Auto-summary** — point at any log file, get instant overview of levels, services, errors, time range
 - **Parallel processing** — splits files into byte-range chunks, processes them across multiple CPU cores
 - **Regex pattern matching** — full regex support with case-sensitive/insensitive modes
 - **Time range filtering** — filter log lines by timestamp window
@@ -19,7 +20,7 @@ A fast, concurrent log file parser built in Python. Processes 500k+ lines at **~
 No installation needed. Clone and run:
 
 ```bash
-git clone https://github.com/your-username/log-parser.git
+git clone https://github.com/imran-habib/log-parser.git
 cd log-parser
 ```
 
@@ -30,14 +31,14 @@ Requires Python 3.7+.
 ```
 usage: logparser.py [-h] [-i] [-n MAX] [-w WORKERS] [-s] [-c] [--no-color]
                     [--after AFTER] [--before BEFORE] [--output OUTPUT]
-                    [--top TOP]
-                    file pattern
+                    [--top TOP] [--summary]
+                    file [pattern]
 
 Fast concurrent log parser
 
 positional arguments:
   file                  Log file to parse
-  pattern               Regex pattern to search for
+  pattern               Regex pattern to search for (optional - omit for summary)
 
 options:
   -h, --help            show this help message and exit
@@ -52,9 +53,67 @@ options:
   --before BEFORE       Only lines before this timestamp
   --output OUTPUT       Export results to JSON file
   --top TOP             Show top N most frequent matches
+  --summary             Auto-analyze log file and show overview
 ```
 
 ## Examples
+
+### Auto-summary (start here)
+
+Just point it at any log file — no pattern needed:
+
+```bash
+python logparser.py server.log
+```
+
+Output:
+```
+════════════════════════════════════════════════════════════
+  Log Summary: server.log
+════════════════════════════════════════════════════════════
+  File size:    33.8 MB
+  Total lines:  500,000
+  Scan time:    1.43s
+  Time range:   2025-01-01 00:00:00 → 2025-01-06 18:53:19
+
+  Log Levels:
+    INFO        349,761  (70.0%)  █████████████████████████
+    WARN         75,208  (15.0%)  █████░░░░░░░░░░░░░░░░░░░░
+    ERROR        49,943  (10.0%)  ███░░░░░░░░░░░░░░░░░░░░░░
+    DEBUG        25,088  ( 5.0%)  █░░░░░░░░░░░░░░░░░░░░░░░░
+
+  Services/Components:
+    db                       71,852
+    gateway                  71,675
+    auth                     71,514
+    cache                    71,477
+    api                      71,278
+
+  Top Errors:
+     3,391x  Timeout waiting for response from upstream
+     3,372x  Memory allocation failed for buffer
+     3,365x  SSL handshake failed with peer
+
+  Error rate:   ~359/hour
+
+════════════════════════════════════════════════════════════
+  Narrow down with:
+    python logparser.py server.log "ERROR" --top 10
+    python logparser.py server.log "timeout" -i --stats
+    python logparser.py server.log "ERROR" --after "2025-01-01"
+════════════════════════════════════════════════════════════
+```
+
+The summary auto-detects:
+- Log levels (INFO, WARN, ERROR, DEBUG, FATAL, CRITICAL, TRACE)
+- Services/components in brackets (e.g., `[auth]`, `[gateway]`)
+- Timestamps and time range
+- Most frequent error messages
+- Error rate per hour
+
+### Then narrow down
+
+Once you see the summary, drill into specifics:
 
 ### Basic search
 
